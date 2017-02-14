@@ -1,0 +1,184 @@
+﻿@model IEnumerable<Publications.Models.ViewModels.TemplateVM>
+
+@{
+    ViewData["Title"] = "Browse";
+    string adminRole = "Admin";
+    bool isAdmin = User.IsInRole(adminRole);
+}
+
+
+<div class="row">
+    <div class="col-sm-8">
+        <h2 class="header">
+            Szablony publikacji
+        </h2>
+    </div>
+    <div class="col-sm-4">
+        <div class="pull-right">
+            @if (isAdmin)
+            {
+                <a asp-action="Add" class="btn btn-success" id="btnAdd" style="margin-top:20px;"><span class="glyphicon glyphicon-plus"></span> Nowy szablon</a>
+            }
+        </div>
+
+    </div>
+</div>
+
+<br />
+<div class="row removeAlert" hidden>
+    <div class="alert alert-info col-sm-12">
+        <span class="glyphicon glyphicon-info-sign"></span><strong> Usunięto pomyślnie</strong>
+    </div>
+</div>
+<div>
+    <input type="checkbox" id="onlyActive" class="" checked/><span> Tylko aktywne szablony</span>
+</div>
+<br />
+<table class="table templates-table table-striped">
+    <thead>
+        <tr>
+            <th>
+                Nazwa
+            </th>
+            <th>
+                Aktywny
+            </th>
+            <th>
+                Liczba publikacji
+            </th>
+            <th>
+                Data utworzenia
+            </th>
+            <th>
+                Data modyfikacji
+            </th>
+            <th class="nosort">
+                Opis
+            </th>
+            <th class="nosort"></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td class="col-sm-2">
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td class="col-sm-2">
+                @{var active = item.IsActive ? "Tak" : "Nie";}
+                @active
+            </td>
+            <td class="col-sm-2">
+                @Html.DisplayFor(modelItem => item.PublicationsCount)
+            </td>
+            <td class="col-sm-2">
+                @Html.DisplayFor(modelItem => item.CreationDate)
+            </td>
+            <td class="col-sm-2">
+                @Html.DisplayFor(modelItem => item.ModifiedDate)
+            </td>
+            <td class="col-sm-1" style="padding-right:0px;">
+                <span data-toggle="tooltip" data-placement="top" title="@item.Description" style="cursor:default;"><u>Opis</u></span>
+            </td>
+            <td class="col-sm-1" style="padding-right:0px;">
+                <a asp-action="Details" asp-route-templateId="@item.TemplateId" data-toggle="tooltip" data-placement="top" title="Szczegóły"><span class="glyphicon glyphicon-edit glyph-button"></span></a>&nbsp;&nbsp;
+                @if (isAdmin)
+                {
+                    <a asp-action="CopyTemplate" asp-route-id="@item.TemplateId" data-toggle="tooltip" data-placement="top" title="Kopiuj szablon"><span class="glyphicon glyphicon-copy glyph-button"></span></a><span>&nbsp; &nbsp;</span>
+                    @if (item.PublicationsCount == 0)
+                    {
+                        <a class="removeBtn" data-templateId="@item.TemplateId" data-toggle="tooltip" data-placement="top" title="Usuń"><span class="glyphicon glyphicon-remove glyph-button"></span></a>
+                    }
+                    else
+                    {
+                        <a class=""  data-toggle="tooltip" data-placement="top" title="Szablon zawiera publikacje w ilości @item.PublicationsCount. Takiego szablonu nie można usunać. Można oznaczyć go jako nieaktywny.">
+                            <span class="glyphicon glyphicon-remove glyph-button" style="opacity: 0.5;"></span>
+                        </a>
+                    }
+                }
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+
+        var dt = $(".templates-table").DataTable({
+            language: {
+                "processing": "Przetwarzanie...",
+                "search": "Szukaj:",
+                "lengthMenu": "Pokaż _MENU_ pozycji",
+                "info": "Pozycje od _START_ do _END_ z _TOTAL_ łącznie",
+                "infoEmpty": "Pozycji 0 z 0 dostępnych",
+                "infoFiltered": "(filtrowanie spośród _MAX_ dostępnych pozycji)",
+                "infoPostFix": "",
+                "loadingRecords": "Wczytywanie...",
+                "zeroRecords": "Nie znaleziono pasujących pozycji",
+                "emptyTable": "Brak danych",
+                "paginate": {
+                    "first": "Pierwsza",
+                    "previous": "Poprzednia",
+                    "next": "Następna",
+                    "last": "Ostatnia"
+                },
+                "aria": {
+                    "sortAscending": ": aktywuj, by posortować kolumnę rosnąco",
+                    "sortDescending": ": aktywuj, by posortować kolumnę malejąco"
+                }
+            },
+            aoColumnDefs: [{
+                'bSortable': false,
+                'aTargets': ['nosort']
+            }]
+        });
+
+        $(".removeBtn").click(function () {
+            var id = $(this).attr("data-templateId");
+            var btn = $(this);
+            bootbox.confirm({
+                message: "Czy na pewno chcesz usunąć szablon?",
+                buttons: {
+                    confirm: {
+                        label: 'Tak',
+                        className: 'btn-success'
+                    },
+                    cancel: {
+                        label: 'Nie',
+                        className: 'btn-danger'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        $.ajax({
+                            url: "@Url.Action("Remove",new { id = "templateId"})".replace("templateId", id),
+                            type: "POST",
+                            success: function (response) {
+                                $(".removeAlert").show();
+                                var row = btn.parents("tr");
+                                dt.row(row).remove().draw();
+                            }
+                        });
+                    }
+                }
+            });
+        });
+
+        dt.columns(1).search("Tak").draw();
+        $("#onlyActive").prop("checked", true);
+        $("#onlyActive").change(function () {
+            var onlyActive = $(this).prop("checked");
+            if (onlyActive) {
+                dt.columns(1).search("Tak").draw();
+            } else {
+                dt.columns().search('').draw();
+            }
+        });
+
+    });
+
+</script>

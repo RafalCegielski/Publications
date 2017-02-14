@@ -1,0 +1,99 @@
+﻿@model IEnumerable<Publications.Models.ViewModels.UserListVM>
+
+@{
+    ViewData["Title"] = "Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Użytkownicy</h2>
+
+<table class="table templates-table table-striped" id="userTable">
+    <thead>
+        <tr>
+
+            <th>
+                @Html.DisplayNameFor(model => model.Email)
+            </th>
+
+            <th class="nosort">
+                @Html.DisplayNameFor(model => model.isAdmin)
+            </th>
+            <th class="nosort"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+
+                <td>
+                    @Html.DisplayFor(modelItem => item.Email)
+                </td>
+
+                <td>
+                    @Html.DisplayFor(modelItem => item.isAdmin)
+                </td>
+                <td>
+                    @if (item.isAdmin)
+                    {
+                        <a asp-area="" asp-controller="Administration" asp-action="RemoveAdmin" asp-route-id="@item.Id" class="btn btn-success">Usun admina</a>
+                    }
+                    else
+                    {
+                        <button data-id="@item.Id" class="btn btn-info addAdminBtn">Daj admina</button>
+                    }
+                    <button data-id="@item.Id" class="btn btn-danger removeUserBtn">Usun uzytkowniaka</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+@section scripts{
+    <script src="~/js/dataTableTranslation.js"></script>
+    <script>
+        $(".addAdminBtn").click(function () {
+            userId = $(this).attr("data-id");
+            bootbox.confirm({
+                message: "Czy na pewno chcesz dać temu użytkownikowi administratora?",
+                buttons: {
+                    confirm: {
+                        label: 'Tak',
+                        className: 'btn-success'
+                    },
+                    cancel: {
+                        label: 'Nie',
+                        className: 'btn-danger'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        window.location.replace("@Url.Action("AddAdmin", "Administration", new { id = "userId" })".replace("userId", userId));
+                    }
+                }
+            });
+        });
+        $(".removeUserBtn").click(function () {
+            userId = $(this).attr("data-id");
+            bootbox.confirm({
+                message: "Czy na pewno chcesz usunąć tego użytkownika?",
+                buttons: {
+                    confirm: {
+                        label: 'Tak',
+                        className: 'btn-success'
+                    },
+                    cancel: {
+                        label: 'Nie',
+                        className: 'btn-danger'
+                    }
+                },
+                callback: function (result) {
+                    if (result) {
+                        window.location.replace("@Url.Action("DeleteUser", "Administration", new { id = "userId" })".replace("userId", userId));
+                    }
+                }
+            });
+
+
+        });
+    </script>
+}

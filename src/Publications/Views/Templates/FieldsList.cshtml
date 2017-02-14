@@ -1,0 +1,5 @@
+@model Publications.Models.ViewModels.FieldVM
+@inject Publications.Services.FieldsProvider fieldsProvider
+
+<select asp-for="FieldId" asp-items="fieldsProvider.GetFieldsByType(Model.Type)" class="form-control fieldId"></select>
+

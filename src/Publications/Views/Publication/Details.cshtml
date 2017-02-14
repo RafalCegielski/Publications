@@ -1,0 +1,73 @@
+﻿@model Publications.Models.ViewModels.PublicationVM
+
+@{
+    ViewData["Title"] = "Szczegóły";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Szczegóły</h2>
+
+<div>
+    <h4>@Html.DisplayFor(model => model.Title)</h4>
+    <hr />
+    <h8>Autorzy:</h8>
+    <ul>
+        @foreach (var item in Model.Authors)
+        {
+            <li>@item</li>
+        }
+    </ul>
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Title)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Title)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Type)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Type)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.BrachesOfKnowledge)
+        </dt>
+        <dd>
+            @foreach (var item in Model.BrachesOfKnowledge)
+            {
+                @(item + " ")
+            }
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.CreationDate)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.CreationDate)
+        </dd>
+    </dl>
+</div>
+<table>
+    <thead>
+        <tr>
+            <th class="col-sm-5">Nazwa</th>
+            <th class="col-sm-5">Wartość</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var fieldValue in Model.FieldValues)
+        {
+            Html.RenderPartial("FieldValueInformationRow", fieldValue);
+        }
+    </tbody>
+
+</table>
+<div>
+    <a asp-action="PublicationList">Back to List</a>
+</div>

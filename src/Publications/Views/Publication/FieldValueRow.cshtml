@@ -1,0 +1,119 @@
+﻿@model IEnumerable<Publications.Models.ViewModels.FieldValueVM>
+<h5>Podaj dane:</h5>
+<table id="publications" class="table">
+    <thead>
+        <tr>
+            <th class="col-md-4">
+                Pole
+            </th>
+            <th class="col-md-3">
+                Typ danych
+            </th>
+            <th class="col-md-5">
+                Wartość
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (Publications.Models.ViewModels.FieldValueVM item in Model)
+        {
+            @switch (item.FieldType)
+            {
+                case FieldType.String:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <input class="form-control fieldvalue" width="40" />
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.Textarea:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <textarea data-bind="item.Value" class="form-control fieldvalue"></textarea>
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.Number:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control fieldvalue" width="40" />
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.DateTime:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <input type="date" class="form-control fieldvalue" />
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.Boolean:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <input type="checkbox" class="form-control fieldvalue" width="10" height="10" />
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.File:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            <input type="file" class="form-control fieldvalue" />
+                        </td>
+                    </tr>
+                    break;
+                case FieldType.Select:
+                    <tr>
+                        <td>
+                            <p class="fieldname">@item.Name</p>
+                        </td>
+                        <td>
+                            <p class="fieldtype">@item.FieldType</p>
+                        </td>
+                        <td>
+                            @inject Publications.Services.FieldsProvider fieldsProvider
+                            <select class="form-control fieldvalue" asp-items="fieldsProvider.GetSelectValues(item.Name)"></select>
+                        </td>
+                    </tr>
+                    break;
+                default:
+                    break;
+            }
+        }
+    </tbody>
+</table>

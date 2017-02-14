@@ -1,0 +1,24 @@
+@model Publications.Models.ViewModels.FieldVM
+@{ 
+    string adminRole = "Admin";
+    bool isAdmin = User.IsInRole(adminRole);
+}
+<tr>
+    <td style="padding-top: 12px;"><span class="tableIndex"></span></td>
+    <td>
+        <input asp-for="AttachId" class="attachId" hidden />
+        <select asp-for="Type" asp-items="Html.GetEnumSelectList<FieldType>()" class="form-control fieldType"></select>
+    </td>
+    <td class="fieldsSelect">
+        @{Html.RenderPartial("FieldsList", Model);}
+    </td>          
+    <td>
+        <span class="glyphicon glyphicon-edit glyph-button btnEditField"></span>&nbsp; &nbsp;
+        @if (isAdmin)
+        {
+            <span class="glyphicon glyphicon-remove removeField"></span>
+        }
+    </td>
+</tr>
+
+

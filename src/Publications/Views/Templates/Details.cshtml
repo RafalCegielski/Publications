@@ -1,0 +1,492 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Publications.Models.Entities
+@model Publications.Models.ViewModels.TemplateVM
+@inject Publications.Services.FieldsProvider fieldsProvider
+@inject SignInManager<ApplicationUser> SignInManager
+@{
+    string title = ViewBag.IsNewTemplate ? "Nowy szablon" : "Edycja szablonu";
+    bool isCopy = ViewBag.IsCopy != null && ViewBag.isCopy;
+    bool hasPublications = Model.PublicationsCount > 0;
+    ViewData["Title"] = title;
+    //var selectsData = fieldsProvider.GetSelectValues();
+    string adminRole = "Admin";
+    bool isAdmin = User.IsInRole(adminRole);
+}
+
+<div class="row">
+    <div class="col-sm-4">
+        <h3 id="title">@title</h3>
+    </div>
+    <div class="col-sm-8">
+        <div class="pull-right">
+            <button class="btn btn-primary" id="btnSave" style="margin-top:20px;"><span class="glyphicon glyphicon-save"></span> Zapisz</button>
+        </div>
+    </div>
+</div>
+<br />
+@if (isCopy)
+{
+    <div class="row copyAlert">
+        <div class="alert alert-success col-sm-12">
+            <strong>Skopiowano pomyślnie. Aby zachować zmiany szablon należy zapisać.</strong>
+        </div>
+    </div>
+}
+@if (hasPublications && isAdmin)
+{
+    <div class="row readOnlyAlert">
+        <div class="alert alert-warning col-sm-12">
+            <strong>
+                Istnieją publikacje korzystające z szablonu. Szablonu nie można edytować. Można utworzyć jego
+                <a asp-action="CopyTemplate" asp-route-id="@Model.TemplateId">kopię</a>.
+            </strong>
+        </div>
+    </div>
+}
+<div class="row alertContainer" hidden>
+    <div class="alert col-sm-12">
+        <strong id="saveStatus">
+        </strong>
+    </div>
+</div>
+
+<div>
+    <form class="form-horizontal">
+        <input asp-for="TemplateId" id="templateId" hidden />
+        <div class="form-group">
+            <div class="col-sm-1">
+                <label class="control-label">Nazwa:</label>
+            </div>
+            <div class="col-sm-10">
+                <input asp-for="Name" class="form-control" style="width:300px;" id="templateName" />
+                <span class="help-block">Pole wymagane.</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-1">
+                <label class="control-label">Opis:</label>
+            </div>
+            <div class="col-sm-10">
+                <textarea asp-for="Description" class="form-control" style="width:300px;" id="templateDescription" rows="4"></textarea>
+                <span class="help-block"></span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-sm-1">
+                <label class="control-label">Aktywny:</label>
+            </div>
+            <div class="col-sm-10">
+                <input type="checkbox" asp-for="IsActive" class="form-control checkbox" style="width:auto;" id="isActive" />
+            </div>
+        </div>
+    </form>
+</div>
+<br />
+<div class="row">
+    <div class="alert alert-info col-sm-12">
+        <span class="glyphicon glyphicon-info-sign"></span><strong> Kazdy szablon zawiera domyslnie takie pola jak nazwa, autorzy i dziedziny wiedzy, których dotyczy.</strong>
+    </div>
+</div>
+<div class="row">
+    <div class="col-sm-6">
+        <h3>Pozostale pola szablonu</h3>
+    </div>
+    <div class="col-sm-6">
+        <div class="pull-right">
+            @if (SignInManager.IsSignedIn(User))
+            {
+                <button class="btn btn-success" style="width:180px; margin-top:20px;" id="addField"><span class="glyphicon glyphicon-plus"></span> Dodaj istniejace pole</button>
+                <button class="btn btn-info " style="width:180px; margin-top:20px;" id="addNewFieldModal"><span class="glyphicon glyphicon-plus"> </span> Dodaj nowe pole</button>
+            }
+            else
+            {
+                <button class="btn btn-success" disabled style="width:180px; margin-top:20px;" id="addField"><span class="glyphicon glyphicon-plus"></span> Dodaj istniejace pole</button>
+                <button class="btn btn-info" disabled style="width:180px; margin-top:20px;" id="addNewFieldModal"><span class="glyphicon glyphicon-plus"> </span> Dodaj nowe pole</button>
+            }
+        </div>
+    </div>
+</div>
+<br />
+
+<div class="row fieldsList">
+    <div class="col-sm-12">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th class="col-sm-1">#</th>
+                    <th class="col-sm-5">Typ</th>
+                    <th class="col-sm-5">Nazwa</th>
+                    <th class="col-sm-1"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var field in Model.Fields)
+                {
+                    Html.RenderPartial("TemplateRow", field);
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="addModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" id="closeModal" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Nowe pole.</h4>
+            </div>
+            <div class="modal-body">
+                <div class="addFieldAlert" hidden>
+                    <div class="alert">
+                        <strong id="addFieldAlertText"></strong>
+                    </div>
+                </div>
+                <div id="editFieldAlert" hidden>
+                    <div class="alert alert-warning">
+                        <strong>Edycja pola wpłynie na wszystkie powiązane szablony i publikacje.</strong>
+                    </div>
+                </div>
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <div class="col-sm-2">
+                            <label class="control-label">Typ:</label>
+                        </div>
+                        <div class="col-sm-6">
+                            <select asp-items="Html.GetEnumSelectList<FieldType>()" class="form-control" id="newFieldType" style="width:265px;"></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-2">
+                            <label class="control-label">Nazwa:</label>
+                        </div>
+                        <div class="col-sm-6">
+                            <input id="newFieldId" hidden />
+                            <input class="form-control" id="newFieldName" maxlength="20" />
+                            <span class="help-block">Pole wymagane. Max 20 znakow.</span>
+                        </div>
+                    </div>
+                    <div id="selectValues" hidden>
+                        <div class="row">
+                            <div class="col-sm-2">
+                                <label class="control-label">Wartości:</label>
+                            </div>
+                            <div class="col-sm-6">
+                                <button class="btn btn-info pull-right" type="button" id="addSelectValue"><span class="glyphicon glyphicon-plus"></span></button>
+                            </div>
+                        </div><br />
+                        <div class="form-group selectValuesLine">
+                            <div class="col-sm-2">
+                                <label class="control-label selectValueLabel">1.</label>
+                            </div>
+                            <div class="col-sm-6">
+                                <input class="form-control selectValue" />
+                            </div>
+                            <div class="col-sm-1" style="padding-top:10px;">
+                                <span class="glyphicon glyphicon-remove glyph-button removeSelectValue"></span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnAddField" class="btn btn-success">Dodaj</button>
+                <button type="button" id="btnCloseModal" class="btn btn-warning" data-dismiss="modal">Anuluj</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+        renumerateTableRows();
+        var isAdmin = '@isAdmin' == "True";
+        var hasPublications = '@hasPublications' == "True";
+        //console.log(hasPublications);
+
+        $('select').select2({
+            language: "pl"
+        });
+        if (hasPublications || !isAdmin) {
+            setReadOnly();
+        }
+        $("#addField").click(function () {
+            $.ajax({
+                url: "@Url.Action("AddField")",
+                type: "GET",
+                success: function (response) {
+                    $("tbody").append(response);
+                    renumerateTableRows();
+                    $('select').select2({
+                        language: "pl"
+                    });
+                }
+            });
+        });
+
+        $(".fieldsList").on("change", ".fieldType", function () {
+            var type = $(this).val();
+            var url = "/Templates/GetFieldsByType?type=" + type;
+            var select = $(this);
+            console.log("ad");
+            $.ajax({
+                url: url,
+                type: "GET",
+                success: function (response) {
+                    $(select).parents("tr").find(".fieldsSelect").html(response);
+                    $('select').select2({
+                        language: "pl"
+                    });
+                }
+            });
+        });
+
+        $(".fieldsList").on("click", ".removeField", function () {
+            if (!hasPublications) {
+                $(this).closest("tr").remove();
+                renumerateTableRows();
+            }
+        });
+
+        $("#btnSave").click(function () {
+            var data = collectTemplateData();
+            //console.log(data);
+            $.ajax({
+                url: "@Url.Action("Save")",
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (response) {
+                    //console.log(response);
+                    var msg = response.message;
+                    if (response.success) {
+                        $(".alertContainer .alert").addClass("alert-success");
+                        $(".alertContainer .alert").removeClass("alert-danger");
+                        $("#title").html("Edycja szablonu");
+                        $("#templateId").val(response.id);
+                        $(".copyAlert").hide();
+                        console.log(response.id);
+                    }
+                    else {
+                        $(".alertContainer .alert").removeClass("alert-success");
+                        $(".alertContainer .alert").addClass("alert-danger");
+                    }
+                    $("#saveStatus").text(msg);
+                    $(".alertContainer").show();
+                }
+            });
+        });
+
+        function collectTemplateData() {
+            var fields = [];
+            $(".fieldsList tbody tr").each(function (i, v) {
+                var field = {
+                    AttachId: $(v).find(".attachId").val(),
+                    FieldId: $(v).find(".fieldId").val()
+                };
+                fields.push(field);
+            });
+            var saveVM = {
+                TemplateId: $("#templateId").val(),
+                Description: $("#templateDescription").val(),
+                Name: $("#templateName").val(),
+                IsActive: $("#isActive").prop("checked"),
+                Fields: fields
+            };
+
+            return saveVM;
+
+        }
+
+        $("#btnAddField").click(function () {
+            //$("#addModal").modal('hide');
+            var selectValues = [];
+            if ($("#newFieldType").val() == 6) {
+                $(".selectValue").each(function (i, v) {
+                    selectValues.push($(v).val());
+                });
+            }
+            var fieldId = parseInt($("#newFieldId").val());
+            var vm = {
+                Type: $("#newFieldType").val(),
+                Name: $("#newFieldName").val(),
+                Id: $("#newFieldId").val(),
+                SelectValues: selectValues
+            }
+            $.ajax({
+                url: "@Url.Action("AddNewField")",
+                data: JSON.stringify(vm),
+                contentType: "application/json; charset=utf-8",
+                type: "POST",
+                success: function (response) {
+                    if (fieldId == -1) {
+                        $("tbody").append(response);
+                        renumerateTableRows();
+                    }
+                    var newSelect = $($(response)).find(".fieldId");
+                    refreshSelects(newSelect, vm.Type);
+                    $('select').select2({
+                        language: "pl"
+                    });
+                    $('#addModal').modal('toggle');
+                    $('.modal-backdrop').hide();
+                },
+                error: function (response) {
+                    $(".addFieldAlert .alert").addClass("alert-danger");
+                    $("#addFieldAlertText").text(response.responseText);
+                    $(".addFieldAlert").show();
+                }
+            });
+        })
+
+        $("#addModal").on("change", "#newFieldType", function () {
+            if ($(this).val() == 6) {
+                $(".selectValuesLine").not(':first').remove();
+                $(".selectValuesLine").find(".removeSelectValue").show();
+                $("#selectValues").show();
+            } else {
+                $("#selectValues").hide();
+            }
+            setSaveFieldButtonEnabled();
+        });
+
+        $("#addModal").on("click", ".removeSelectValue", function () {
+            $(this).parents(".selectValuesLine").remove();
+            $(".selectValueLabel").each(function (i, v) {
+                $(v).text(i + 1 + ".");
+            });
+            setSaveFieldButtonEnabled();
+        });
+
+        $("#addSelectValue").click(function () {
+            var newLine = $(".selectValuesLine").first().clone();
+            $(newLine).find(".selectValue").val("");
+            $(newLine).find(".removeSelectValue").show();
+            $("#selectValues").append(newLine);
+            $(".selectValueLabel").each(function (i, v) {
+                $(v).text(i + 1 + ".");
+            });
+            setSaveFieldButtonEnabled();
+        });
+
+
+        $("#addNewFieldModal").click(function () {
+            $('#addModal .modal-title').html('Nowe pole');
+            $("#newFieldType").prop("disabled", false);
+            $("#newFieldType").val("0").trigger("change");
+            $("#btnAddField").text("Dodaj");
+            $("#btnCloseModal").text("Anuluj");
+            $(".selectValue").val("");
+            $("#newFieldName").val("");
+            $("#newFieldId").val("-1");
+            setSaveFieldButtonEnabled();
+            $("#editFieldAlert").hide();
+
+            $('#addModal').modal('toggle');
+            $(".addFieldAlert").hide();
+        });
+
+        $(".fieldsList").on("click", ".btnEditField", function () {
+            $('#addModal .modal-title').html('Szczegóły pola');
+            $("#newFieldType").prop("disabled", true);
+            $("#btnAddField").text("Zapisz");
+            $("#btnCloseModal").text("Zamknij");
+            var fieldType = $(this).parents("tr").find(".fieldType").val();
+            $("#newFieldType").val(fieldType).trigger("change");
+            var fieldName = $(this).parents("tr").find(".fieldId option:selected").text();
+            $("#newFieldName").val(fieldName);
+            var fieldId = $(this).parents("tr").find(".fieldId").val();
+            $("#newFieldId").val(fieldId);
+            $("#editFieldAlert").show();
+            setSaveFieldButtonEnabled();
+            if (fieldType == 6) {
+                $.ajax({
+                    url: "@Url.Action("GetSelectFieldValues", new { id = "id"})".replace("id", fieldId),
+                    type: "POST",
+                    success: function (response) {
+                        for (var i = 0; i < response.length; i++) {
+                            if (i == 0) {
+                                $(".selectValuesLine").find(".selectValue").first().val(response[i]);
+                            } else {
+                                var newLine = $(".selectValuesLine").first().clone();
+                                $(newLine).find(".selectValue").val(response[i]);
+                                $("#selectValues").append(newLine);
+
+                            }
+                        }
+                        $(".selectValueLabel").each(function (i, v) {
+                            $(v).text(i + 1 + ".");
+                        });
+                        $(".removeSelectValue").hide();
+                        setSaveFieldButtonEnabled();
+                    }
+                });
+
+            }
+            $('#addModal').modal('toggle');
+            $(".addFieldAlert").hide();
+        });
+
+
+        $("#addModal").on("keyup", ".selectValue, #newFieldName", function () {
+            setSaveFieldButtonEnabled();
+        });
+
+        $("#templateName").on("keyup", function () {
+            setSaveTemplateButtonEnabled();
+        });
+
+        function setSaveTemplateButtonEnabled() {
+            if ($("#templateName").val().length == 0) {
+                $("#btnSave").prop("disabled", true);
+            } else {
+                $("#btnSave").prop("disabled", false);
+            }
+        }
+
+        function setSaveFieldButtonEnabled() {
+            var isValid = false;
+            if ($("#newFieldName").val().length > 0) {
+                isValid = true;
+                var type = $("#newFieldType").val();
+                if (type == 6) {
+                    $(".selectValue").each(function (i, v) {
+                        if ($(v).val().length == 0) {
+                            isValid = false;
+                        }
+                    });
+                }
+            }
+            if (!isAdmin || hasPublications) {
+                isValid = false;
+            }
+            $("#btnAddField").prop("disabled", !isValid);
+        };
+
+        function refreshSelects(newSelect, newFieldType) {
+            $(".fieldType").each(function (i, v) {
+                var currType = $(v).val();
+                if (currType == newFieldType) {
+                    var currValue = $(v).parents("tr").find(".fieldId").val();
+                    var select = $(newSelect).clone().select2();
+                    $(v).parents("tr").find(".fieldsSelect").empty();
+                    $(v).parents("tr").find(".fieldsSelect").html(select);
+                    $(v).parents("tr").find(".fieldId").val(currValue);
+                }
+            });
+
+        }
+
+        function setReadOnly() {
+            $("input").prop('disabled', true);
+            $("textarea").prop('disabled', true);
+            $("select").prop('disabled', true);
+            $("button").prop('disabled', true);
+            $("#closeModal").prop('disabled', false);
+            $("#btnCloseModal").prop('disabled', false);
+        }
+    });
+</script>
